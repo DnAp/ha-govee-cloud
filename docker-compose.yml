@@ -1,0 +1,10 @@
+version: '3'
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:2021.9.7"
+    volumes:
+      - ./data:/config
+      - ./custom_components/govee_cloud:/config/custom_components/govee_cloud
+    ports:
+      - 8124:8123

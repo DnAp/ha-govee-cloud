@@ -1,11 +1,12 @@
 import json
 
-import requests
 import logging
+import aiohttp
 
 CLIENT_ID = 'b529ce1f1bd14ff29120b697bd308aa5'
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def get_access_token(email, password):
     response = await request(
@@ -31,38 +32,19 @@ async def get_devices(access_token):
             'iotVersion': "0"
         }
     )
-
+    ret = {}
     if response is not None and 'devices' in response:
         for device in response['devices']:
             device['deviceExt']['lastDeviceData'] = json.loads(device['deviceExt']['lastDeviceData'])
             device['deviceExt']['deviceSettings'] = json.loads(device['deviceExt']['deviceSettings'])
             device['deviceExt']['extResources'] = json.loads(device['deviceExt']['extResources'])
-        return response['devices']
+            ret[device['device']] = device
+        return ret
 
     return None
 
 
 async def request(url, headers=None, data=None):
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        _LOGGER.error('Govee Cloud: HTTP error: ' + str(http_err))
-    except Exception as err:
-        _LOGGER.error('Govee Cloud: Other error: ' + str(err))
-    return None
-
-#
-# import asyncio
-#
-#
-# async def a():
-#     print(await get_devices(
-#         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InNpZCI6ImZNWXNFZDMyYVNiSnFrbFY3dWtUTVdJbmNnazVWaXdYIn0sImlhdCI6MTY0MTQ4NDY2NywiZXhwIjoxNjQ2NjY4NjY3fQ.i6blEid0SnHAO35X9xt0vYQ0qUbD9Dpb0iwV2UPLquc')
-#           )
-#
-#
-# # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InNpZCI6ImZNWXNFZDMyYVNiSnFrbFY3dWtUTVdJbmNnazVWaXdYIn0sImlhdCI6MTY0MTQ4NDY2NywiZXhwIjoxNjQ2NjY4NjY3fQ.i6blEid0SnHAO35X9xt0vYQ0qUbD9Dpb0iwV2UPLquc
-#
-# asyncio.run(a())
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as response:
+            return await response.json()

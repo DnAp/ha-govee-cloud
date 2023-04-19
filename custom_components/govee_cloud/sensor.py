@@ -11,6 +11,7 @@ from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -18,6 +19,10 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from . import api
+
+DOMAIN = "govee_cloud"
+TEMPERATURE_PREFIX = 'temp'
+HUMIDITY_PREFIX = 'hum'
 
 SUPPORTED_SKU = ['H5179']
 UPDATE_INTERVAL = datetime.timedelta(minutes=10)
@@ -32,6 +37,7 @@ def devices_filter(devices):
         if device['sku'] not in SUPPORTED_SKU:
             continue
         filtered_devices[deviceId] = device
+    _LOGGER.warning('Filtered devices: %s', deviceId)
     return filtered_devices
 
 
@@ -79,6 +85,11 @@ class TemperatureSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.idx = idx
         self._name = device['deviceName'] + ' Temperature'
+        self._attr_unique_id = TEMPERATURE_PREFIX + idx
+        self._attr_device_info = DeviceInfo(
+            name=device['deviceName'],
+            identifiers={(DOMAIN, TEMPERATURE_PREFIX + idx)},
+        )
 
     @property
     def name(self) -> str:
@@ -98,6 +109,12 @@ class HumiditySensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.idx = idx
         self._name = device['deviceName'] + ' Humidity'
+        self._attr_unique_id = HUMIDITY_PREFIX + idx
+        self._attr_device_info = DeviceInfo(
+            name=device['deviceName'],
+            identifiers={(DOMAIN, HUMIDITY_PREFIX + idx)},
+        )
+
 
     @property
     def name(self) -> str:

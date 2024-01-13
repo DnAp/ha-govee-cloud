@@ -9,6 +9,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.entity import DeviceInfo
@@ -20,7 +21,8 @@ from homeassistant.helpers.update_coordinator import (
 
 from . import api
 
-DOMAIN = "govee_cloud"
+from .const import DOMAIN
+
 TEMPERATURE_PREFIX = 'temp'
 HUMIDITY_PREFIX = 'hum'
 
@@ -35,9 +37,9 @@ def devices_filter(devices):
     for deviceId in devices:
         device = devices[deviceId]
         if device['sku'] not in SUPPORTED_SKU:
+            _LOGGER.warning('Not supported devices: %s. Model: ' + device['sku'], device['deviceName'])
             continue
         filtered_devices[deviceId] = device
-    _LOGGER.warning('Filtered devices: %s', deviceId)
     return filtered_devices
 
 
@@ -73,23 +75,27 @@ async def async_setup_platform(
     await coordinator.async_refresh()
 
     sensors = []
-    for deviceId in coordinator.data:
-        sensors.append(TemperatureSensor(coordinator, coordinator.data[deviceId], deviceId))
-        sensors.append(HumiditySensor(coordinator, coordinator.data[deviceId], deviceId))
+    for deviceId, device in coordinator.data.items():
+        device_info = DeviceInfo(
+            name=device['deviceName'],
+            identifiers={(DOMAIN, deviceId)},
+            entry_type=DeviceEntryType.SERVICE,
+            manufacturer='Govee',
+            model=device['sku'],
+        )
+        sensors.append(TemperatureSensor(coordinator, device, device_info, deviceId))
+        sensors.append(HumiditySensor(coordinator, device, device_info, deviceId))
 
     async_add_entities(sensors)
 
 
 class TemperatureSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, device, idx):
+    def __init__(self, coordinator, device, device_info, idx):
         super().__init__(coordinator)
         self.idx = idx
         self._name = device['deviceName'] + ' Temperature'
         self._attr_unique_id = TEMPERATURE_PREFIX + idx
-        self._attr_device_info = DeviceInfo(
-            name=device['deviceName'],
-            identifiers={(DOMAIN, TEMPERATURE_PREFIX + idx)},
-        )
+        self._attr_device_info = device_info
 
     @property
     def name(self) -> str:
@@ -105,16 +111,12 @@ class TemperatureSensor(CoordinatorEntity, SensorEntity):
 
 
 class HumiditySensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, device, idx):
+    def __init__(self, coordinator, device, device_info, idx):
         super().__init__(coordinator)
         self.idx = idx
         self._name = device['deviceName'] + ' Humidity'
         self._attr_unique_id = HUMIDITY_PREFIX + idx
-        self._attr_device_info = DeviceInfo(
-            name=device['deviceName'],
-            identifiers={(DOMAIN, HUMIDITY_PREFIX + idx)},
-        )
-
+        self._attr_device_info = device_info
 
     @property
     def name(self) -> str:

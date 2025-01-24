@@ -1,10 +1,11 @@
 {
   "domain": "govee_cloud",
   "name": "Govee Cloud Sensor",
+  "config_flow": true,
   "documentation": "https://github.com/DnAp/ha-govee-cloud",
   "dependencies": [],
   "codeowners": [],
   "requirements": [],
-  "iot_class": "local_polling",
-  "version": "0.1.1"
+  "iot_class": "cloud_polling",
+  "version": "0.1.2"
 }

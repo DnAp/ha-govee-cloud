@@ -22,16 +22,12 @@ Note: Compatible with Home Assistant 2025.1 and newer.
 
 ## Configuration
 
-Add the following to your `configuration.yaml`:
+1. Go to Home Assistant Settings -> Devices & Services
+2. Click "Add Integration"
+3. Search for "Govee Cloud"
+4. Enter your Govee account email and password
 
-```yaml
-sensor:
-  - platform: govee_cloud
-    email: "your-email@example.com"
-    password: "your-password"
-```
-
-Replace `your-email@example.com` and `your-password` with your Govee account credentials.
+The integration will automatically discover and add your supported Govee devices.
 
 ## Features
 
@@ -42,7 +38,14 @@ Replace `your-email@example.com` and `your-password` with your Govee account cre
 
 ## Changelog
 
+### 0.1.3
+- Fixed device registration and grouping
+- Improved token refresh handling
+- Added better error logging
+
 ### 0.1.2
+- Migrated to config_flow for improved setup experience
+- Removed configuration.yaml setup method
 - Fixed compatibility with Home Assistant 2025.1
 
 ### 0.1.1

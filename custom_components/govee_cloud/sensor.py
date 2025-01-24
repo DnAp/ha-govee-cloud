@@ -24,6 +24,8 @@ from .const import DOMAIN
 
 TEMPERATURE_PREFIX = 'temp'
 HUMIDITY_PREFIX = 'hum'
+BATTERY_PREFIX = 'batt'
+ONLINE_PREFIX = 'online'
 
 SUPPORTED_SKU = ['H5179']
 UPDATE_INTERVAL = datetime.timedelta(minutes=10)
@@ -95,13 +97,16 @@ async def async_setup_entry(
             entry_type=DeviceEntryType.SERVICE,
             manufacturer='Govee',
             model=device['sku'],
-            sw_version=device.get('version', ''),
+            hw_version=device.get('versionHard', ''),
+            sw_version=device.get('versionSoft', ''),
             via_device=(DOMAIN, config['email'])
         )
         _LOGGER.debug(f"Created device_info: {device_info}")
         sensors.extend([
             TemperatureSensor(coordinator, device, device_info, deviceId),
-            HumiditySensor(coordinator, device, device_info, deviceId)
+            HumiditySensor(coordinator, device, device_info, deviceId),
+            BatterySensor(coordinator, device, device_info, deviceId),
+            OnlineSensor(coordinator, device, device_info, deviceId)
         ])
 
     async_add_entities(sensors)
@@ -116,8 +121,39 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
         self.idx = idx
         self.sensor_type = sensor_type
         self._name = f"{device['deviceName']} {sensor_type.capitalize()}"
-        self._attr_unique_id = f"{TEMPERATURE_PREFIX if sensor_type == 'temperature' else HUMIDITY_PREFIX}{idx}"
+        
+        # Map sensor types to their prefixes
+        prefix_map = {
+            'temperature': TEMPERATURE_PREFIX,
+            'humidity': HUMIDITY_PREFIX,
+            'battery': BATTERY_PREFIX,
+            'online': ONLINE_PREFIX
+        }
+        prefix = prefix_map.get(sensor_type, 'unknown')
+        self._attr_unique_id = f"{prefix}{idx}"
         self._attr_device_info = device_info
+
+    def _is_data_valid(self) -> bool:
+        """Check if the data is valid based on online status and freshness."""
+        try:
+            device_data = self.coordinator.data[self.idx]['deviceExt']
+            last_device_data = device_data['lastDeviceData']
+            device_settings = device_data['deviceSettings']
+            
+            # Check online status
+            if not last_device_data['online']:
+                return False
+                
+            # Check data freshness based on uploadRate
+            last_time = int(last_device_data['lastTime'])
+            now = int(datetime.datetime.now().timestamp() * 1000)  # Convert to milliseconds
+            upload_rate = int(device_settings['uploadRate'])
+            max_allowed_delay = upload_rate * 60 * 1000 * 1.2  # Convert minutes to milliseconds and add 20%
+            
+            return (now - last_time) < max_allowed_delay
+            
+        except (KeyError, ValueError, TypeError):
+            return False
 
     @property
     def name(self) -> str:
@@ -127,14 +163,26 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        data_key = 'tem' if self.sensor_type == 'temperature' else 'hum'
-        return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData'][data_key] / 100
+        if self.sensor_type == 'online':
+            try:
+                return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData']['online']
+            except (KeyError, ValueError, TypeError):
+                return None
+        
+        if not self._is_data_valid():
+            return None
+            
+        if self.sensor_type in ['temperature', 'humidity']:
+            data_key = 'tem' if self.sensor_type == 'temperature' else 'hum'
+            return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData'][data_key] / 100
+        return None
 
 
 class TemperatureSensor(GoveeSensor):
     """Temperature sensor for Govee devices."""
 
     _sensor_option_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_icon = "mdi:thermometer"
     
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the temperature sensor."""
@@ -144,6 +192,46 @@ class TemperatureSensor(GoveeSensor):
 class HumiditySensor(GoveeSensor):
     """Humidity sensor for Govee devices."""
     
+    _attr_icon = "mdi:water-percent"
+    
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the humidity sensor."""
         super().__init__(coordinator, device, device_info, idx, 'humidity')
+
+
+class BatterySensor(GoveeSensor):
+    """Battery sensor for Govee devices."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_icon = "mdi:battery"
+    _attr_entity_registry_enabled_default = False
+    
+    def __init__(self, coordinator, device, device_info, idx):
+        """Initialize the battery sensor."""
+        super().__init__(coordinator, device, device_info, idx, 'battery')
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        if not self._is_data_valid():
+            return None
+        return self.coordinator.data[self.idx]['deviceExt']['deviceSettings']['battery']
+
+
+class OnlineSensor(GoveeSensor):
+    """Online status sensor for Govee devices."""
+    
+    _attr_icon = "mdi:cloud-check"
+    _attr_entity_registry_enabled_default = False
+    
+    def __init__(self, coordinator, device, device_info, idx):
+        """Initialize the online sensor."""
+        super().__init__(coordinator, device, device_info, idx, 'online')
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        try:
+            return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData']['online']
+        except (KeyError, ValueError, TypeError):
+            return None

@@ -38,6 +38,11 @@ The integration will automatically discover and add your supported Govee devices
 
 ## Changelog
 
+### 0.1.4
+- Added battery level sensor
+- Added online status sensor
+- Improved data freshness validation based on device upload rate
+
 ### 0.1.3
 - Fixed device registration and grouping
 - Improved token refresh handling

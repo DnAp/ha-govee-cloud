@@ -38,6 +38,9 @@ The integration will automatically discover and add your supported Govee devices
 
 ## Changelog
 
+### 0.1.5
+- Enable battery sensor by default
+
 ### 0.1.4
 - Added battery level sensor
 - Added online status sensor

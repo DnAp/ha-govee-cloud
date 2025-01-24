@@ -2,7 +2,7 @@ version: '3'
 services:
   homeassistant:
     container_name: homeassistant
-    image: "ghcr.io/home-assistant/home-assistant:2023.1.7"
+    image: "ghcr.io/home-assistant/home-assistant:2025.1"
     volumes:
       - ./data:/config
       - ./custom_components/govee_cloud:/config/custom_components/govee_cloud

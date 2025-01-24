@@ -7,7 +7,7 @@ from homeassistant.components.sensor import (
     DOMAIN as SENSOR_DOMAIN,
     SensorEntity,
 )
-from homeassistant.const import TEMP_CELSIUS, PERCENTAGE
+from homeassistant.const import UnitOfTemperature, PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -107,7 +107,7 @@ class TemperatureSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def unit_of_measurement(self) -> str:
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
 
 class HumiditySensor(CoordinatorEntity, SensorEntity):

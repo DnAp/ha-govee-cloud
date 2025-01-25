@@ -204,7 +204,7 @@ class BatterySensor(GoveeSensor):
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_icon = "mdi:battery"
-    _attr_entity_registry_enabled_default = False
+    _attr_entity_registry_enabled_default = True
     
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the battery sensor."""

@@ -26,6 +26,7 @@ TEMPERATURE_PREFIX = 'temp'
 HUMIDITY_PREFIX = 'hum'
 BATTERY_PREFIX = 'batt'
 ONLINE_PREFIX = 'online'
+UPLOAD_RATE_PREFIX = 'upload_rate'
 
 SUPPORTED_SKU = ['H5179']
 UPDATE_INTERVAL = datetime.timedelta(minutes=10)
@@ -46,9 +47,9 @@ def devices_filter(devices):
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Govee Cloud sensor based on a config entry."""
     config = hass.data[DOMAIN][entry.entry_id]
@@ -106,7 +107,8 @@ async def async_setup_entry(
             TemperatureSensor(coordinator, device, device_info, deviceId),
             HumiditySensor(coordinator, device, device_info, deviceId),
             BatterySensor(coordinator, device, device_info, deviceId),
-            OnlineSensor(coordinator, device, device_info, deviceId)
+            OnlineSensor(coordinator, device, device_info, deviceId),
+            UploadRateSensor(coordinator, device, device_info, deviceId)
         ])
 
     async_add_entities(sensors)
@@ -121,13 +123,14 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
         self.idx = idx
         self.sensor_type = sensor_type
         self._name = f"{device['deviceName']} {sensor_type.capitalize()}"
-        
+
         # Map sensor types to their prefixes
         prefix_map = {
             'temperature': TEMPERATURE_PREFIX,
             'humidity': HUMIDITY_PREFIX,
             'battery': BATTERY_PREFIX,
-            'online': ONLINE_PREFIX
+            'online': ONLINE_PREFIX,
+            'upload_rate': UPLOAD_RATE_PREFIX
         }
         prefix = prefix_map.get(sensor_type, 'unknown')
         self._attr_unique_id = f"{prefix}{idx}"
@@ -139,19 +142,19 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
             device_data = self.coordinator.data[self.idx]['deviceExt']
             last_device_data = device_data['lastDeviceData']
             device_settings = device_data['deviceSettings']
-            
+
             # Check online status
             if not last_device_data['online']:
                 return False
-                
+
             # Check data freshness based on uploadRate
             last_time = int(last_device_data['lastTime'])
             now = int(datetime.datetime.now().timestamp() * 1000)  # Convert to milliseconds
             upload_rate = int(device_settings['uploadRate'])
             max_allowed_delay = upload_rate * 60 * 1000 * 1.2  # Convert minutes to milliseconds and add 20%
-            
+
             return (now - last_time) < max_allowed_delay
-            
+
         except (KeyError, ValueError, TypeError):
             return False
 
@@ -168,10 +171,10 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
                 return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData']['online']
             except (KeyError, ValueError, TypeError):
                 return None
-        
+
         if not self._is_data_valid():
             return None
-            
+
         if self.sensor_type in ['temperature', 'humidity']:
             data_key = 'tem' if self.sensor_type == 'temperature' else 'hum'
             return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData'][data_key] / 100
@@ -181,9 +184,9 @@ class GoveeSensor(CoordinatorEntity, SensorEntity):
 class TemperatureSensor(GoveeSensor):
     """Temperature sensor for Govee devices."""
 
-    _sensor_option_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_icon = "mdi:thermometer"
-    
+
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the temperature sensor."""
         super().__init__(coordinator, device, device_info, idx, 'temperature')
@@ -191,9 +194,10 @@ class TemperatureSensor(GoveeSensor):
 
 class HumiditySensor(GoveeSensor):
     """Humidity sensor for Govee devices."""
-    
+
     _attr_icon = "mdi:water-percent"
-    
+    _attr_native_unit_of_measurement = PERCENTAGE
+
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the humidity sensor."""
         super().__init__(coordinator, device, device_info, idx, 'humidity')
@@ -205,7 +209,7 @@ class BatterySensor(GoveeSensor):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_icon = "mdi:battery"
     _attr_entity_registry_enabled_default = True
-    
+
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the battery sensor."""
         super().__init__(coordinator, device, device_info, idx, 'battery')
@@ -220,10 +224,10 @@ class BatterySensor(GoveeSensor):
 
 class OnlineSensor(GoveeSensor):
     """Online status sensor for Govee devices."""
-    
+
     _attr_icon = "mdi:cloud-check"
     _attr_entity_registry_enabled_default = False
-    
+
     def __init__(self, coordinator, device, device_info, idx):
         """Initialize the online sensor."""
         super().__init__(coordinator, device, device_info, idx, 'online')
@@ -233,5 +237,26 @@ class OnlineSensor(GoveeSensor):
         """Return the state of the sensor."""
         try:
             return self.coordinator.data[self.idx]['deviceExt']['lastDeviceData']['online']
+        except (KeyError, ValueError, TypeError):
+            return None
+
+
+class UploadRateSensor(GoveeSensor):
+    """Upload rate sensor for Govee devices."""
+
+    _attr_icon = "mdi:clock-outline"
+    _attr_native_unit_of_measurement = "min"
+    _attr_entity_registry_enabled_default = True
+
+    def __init__(self, coordinator, device, device_info, idx):
+        """Initialize the upload rate sensor."""
+        super().__init__(coordinator, device, device_info, idx, 'upload_rate')
+        self._name = f"{device['deviceName']} Upload Rate"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        try:
+            return self.coordinator.data[self.idx]['deviceExt']['deviceSettings']['uploadRate']
         except (KeyError, ValueError, TypeError):
             return None

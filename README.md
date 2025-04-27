@@ -38,6 +38,9 @@ The integration will automatically discover and add your supported Govee devices
 
 ## Changelog
 
+### 0.1.6
+- Add Upload Rate Sensor to Govee devices
+
 ### 0.1.5
 - Enable battery sensor by default
 

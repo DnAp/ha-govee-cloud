@@ -4,6 +4,7 @@ import logging
 import aiohttp
 
 CLIENT_ID = 'b529ce1f1bd14ff29120b697bd308aa5'
+APP_VERSION = '5.6.01'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -11,7 +12,13 @@ _LOGGER = logging.getLogger(__name__)
 async def get_access_token(email, password):
     response = await request(
         'https://app2.govee.com/account/rest/account/v1/login',
-        {"Content-Type": "application/json"},
+        {
+            "Content-Type": "application/json",
+            'Appversion': APP_VERSION,
+            'clientId': CLIENT_ID,
+            'clientType': "1",
+            'iotVersion': "0",
+        },
         {"email": email, "client": CLIENT_ID, "password": password, }
     )
     if response is not None and 'client' in response:
@@ -25,7 +32,7 @@ async def get_devices(access_token):
         'https://app2.govee.com/device/rest/devices/v1/list',
         {
             'Authorization': 'Bearer ' + access_token,
-            'Appversion': '4.7.0',
+            'Appversion': APP_VERSION,
             "Content-Type": "application/json",
             'clientId': CLIENT_ID,
             'clientType': "1",

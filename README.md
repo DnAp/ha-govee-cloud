@@ -51,6 +51,10 @@ If Govee later rejects your password, Home Assistant asks you to re-enter it.
 If Govee rejects the app version the integration identifies itself with, a repair
 issue appears under Settings -> Repairs; update the integration when that happens.
 
+A device you remove from your Govee account stays in Home Assistant until you delete
+it: open the device page and choose Delete. Devices still on the account cannot be
+deleted this way.
+
 ## Features
 
 - Automatic device discovery
@@ -73,6 +77,10 @@ GOVEE_EMAIL=you@example.com GOVEE_PASSWORD=... python scripts/smoke_test.py --ha
 integration mounted from this repository.
 
 ## Changelog
+
+### 0.2.1
+- Devices that are no longer on the Govee account can be deleted from Home Assistant
+- Add the MIT license file
 
 ### 0.2.0
 - Sensors without current readings (device offline, or readings older than the upload interval plus 20%) are now `unavailable` instead of `unknown`

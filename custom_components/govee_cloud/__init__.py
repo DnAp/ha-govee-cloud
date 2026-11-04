@@ -5,7 +5,7 @@ import logging
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GoveeApi
@@ -34,6 +34,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoveeConfigEntry) -> boo
 async def async_unload_entry(hass: HomeAssistant, entry: GoveeConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: GoveeConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow removing a device only once it is gone from the Govee account."""
+    devices = entry.runtime_data.data or {}
+    return not any(
+        domain == DOMAIN and device_id in devices
+        for domain, device_id in device_entry.identifiers
+    )
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: GoveeConfigEntry) -> bool:

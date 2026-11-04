@@ -218,6 +218,46 @@ async def test_migration_from_0_1(
     assert dr.async_get(hass).async_get(device.id).entry_type is None
 
 
+async def test_remove_stale_device(
+    hass: HomeAssistant,
+    hass_ws_client,
+    aioclient_mock: AiohttpClientMocker,
+    config_entry: MockConfigEntry,
+) -> None:
+    """A device gone from the Govee account can be removed; a live one cannot."""
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "config", {})
+    mock_govee(aioclient_mock, [make_device("AA:10", "Bedroom")])
+    registry = dr.async_get(hass)
+    stale = registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id, identifiers={(DOMAIN, "GONE:01")}, name="Family room"
+    )
+    await _setup(hass, config_entry)
+    [live] = [
+        device
+        for device in dr.async_entries_for_config_entry(registry, config_entry.entry_id)
+        if (DOMAIN, "AA:10") in device.identifiers
+    ]
+
+    client = await hass_ws_client(hass)
+
+    async def remove(device_id: str) -> bool:
+        await client.send_json_auto_id(
+            {
+                "type": "config/device_registry/remove_config_entry",
+                "config_entry_id": config_entry.entry_id,
+                "device_id": device_id,
+            }
+        )
+        return (await client.receive_json())["success"]
+
+    assert await remove(live.id) is False
+    assert await remove(stale.id) is True
+    remaining = {device.id for device in dr.async_entries_for_config_entry(registry, config_entry.entry_id)}
+    assert remaining == {live.id}
+
+
 async def test_unload(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, config_entry: MockConfigEntry
 ) -> None:

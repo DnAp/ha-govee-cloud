@@ -1,11 +1,13 @@
 {
   "domain": "govee_cloud",
   "name": "Govee Cloud Sensor",
+  "codeowners": ["@DnAp"],
   "config_flow": true,
-  "documentation": "https://github.com/DnAp/ha-govee-cloud",
   "dependencies": [],
-  "codeowners": [],
-  "requirements": [],
+  "documentation": "https://github.com/DnAp/ha-govee-cloud",
+  "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "version": "0.1.7"
+  "issue_tracker": "https://github.com/DnAp/ha-govee-cloud/issues",
+  "requirements": [],
+  "version": "0.2.0"
 }

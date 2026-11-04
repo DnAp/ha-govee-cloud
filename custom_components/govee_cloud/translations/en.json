@@ -1,16 +1,49 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "data": {
-                    "email": "Email",
-                    "password": "Password"
-                }
-            }
-        },
-        "error": {
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Govee account",
+        "description": "Log in with the e-mail and password of your Govee Home app account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
         }
+      },
+      "reauth_confirm": {
+        "title": "Govee login expired",
+        "description": "Govee rejected the stored password for {email}. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid authentication",
+      "cannot_connect": "Failed to connect to Govee",
+      "app_version": "Govee rejected the app version this integration uses. Update the integration.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This Govee account is already configured",
+      "reauth_successful": "Re-authentication was successful"
     }
+  },
+  "entity": {
+    "sensor": {
+      "upload_rate": {
+        "name": "Upload Rate"
+      }
+    },
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      }
+    }
+  },
+  "issues": {
+    "app_version_too_low": {
+      "title": "Govee rejects the integration's app version",
+      "description": "Govee Cloud refused to log in: \"{message}\". The integration identifies itself as Govee Home app version {version}, which Govee no longer accepts, so no sensor data is updated. Update the Govee Cloud integration; if there is no update yet, report it to the integration's issue tracker."
+    }
+  }
 }
